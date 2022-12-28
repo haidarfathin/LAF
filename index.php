@@ -1,81 +1,104 @@
-<!doctype html>
-<html lang="en">
+<?php
+include "php/config.php";
+session_start();
+if (isset($_POST['daftar'])) {
+	$username = stripslashes($_POST['username']);
+	$username = mysqli_real_escape_string($conn, $username);
+	$nomor     = stripslashes($_POST['nomor']);
+	$nomor     = mysqli_real_escape_string($conn, $nomor);
+	$finalNomor = setNomor($nomor);
+	$password = stripslashes($_POST['password']);
+	$password = mysqli_real_escape_string($conn, $password);
+	$repass   = stripslashes($_POST['cpassword']);
+	$repass   = mysqli_real_escape_string($conn, $repass);
+	if (!empty(trim($username)) && !empty(trim($nomor)) && !empty(trim($password)) && !empty(trim($repass))) {
+		if ($password == $repass) {
+			if (cek_nama($username, $conn) == 0) {
+				$pass  = password_hash($password, PASSWORD_DEFAULT);
+				$query = "INSERT INTO users (username, password, nomor ) VALUES ('$username','$pass','$finalNomor')";
+				$result   = mysqli_query($conn, $query);
+				if ($result) {
+					$_SESSION['name'] = $username;
+					header('Location: php/home_page.php');
+				} else {
+					echo "<script type='text/javascript'>alert('Gagal mendaftar, koneksi terganggu')</script>";
+				}
+			} else {
+				echo "<script type='text/javascript'>alert('Username ini telah ada')</script>";
+			}
+		} else {
+			echo "<script type='text/javascript'>alert('Password tidak sama')</script>";
+		}
+	} else {
+		echo "<script type='text/javascript'>alert('Data tidak boleh kosong')</script>";
+	}
+}
+if (isset($_POST['masuk'])) {
+
+	if ($stmt = mysqli_prepare($conn, 'SELECT id, password FROM users WHERE username = ?')) {
+		$stmt->bind_param('s', $_POST['username']);
+		$stmt->execute();
+		$stmt->store_result();
+		if ($stmt->num_rows > 0) {
+			$stmt->bind_result($id, $password);
+			$stmt->fetch();
+			if (password_verify($_POST['password'], $password)) {
+				session_regenerate_id();
+				$_SESSION['id'] = $_POST['id'];
+				$_SESSION['name'] = $_POST['username'];
+				header('Location: php/home_page.php');
+			} else {
+				echo "<script type='text/javascript'>alert('Password anda salah')</script>";
+			}
+		} else {
+			echo "<script type='text/javascript'>alert('Username tidak sama')</script>";
+		}
+		$stmt->close();
+	}
+}
+?>
+
+
+
+<!DOCTYPE html>
+<html lang="en" style="background-color: #434A75;">
 
 <head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" type="text/css" href="login/css/style.css">
 	<title>Login</title>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-	<link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
-
-	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-
-	<link rel="stylesheet" href="css/style.css">
-
 </head>
 
-<body>
-	<section class="ftco-section">
-		<div class="container">
-			<div class="row justify-content-center">
-				<div class="col-md-6 text-center mb-5">
-					<h2 class="heading-section">Login</h2>
+<body style="background-color: #434A75;">
+	<div class="form-structor">
+		<div class="signup">
+			<h2 class="form-title" id="signup"><span>or</span>Sign up</h2>
+			<form action="" method="POST">
+				<div class="form-holder">
+					<input type="text" class="input" placeholder="Username" name="username" required />
+					<input type="text" class="input" placeholder="No.Whatsapp" name="nomor" required />
+					<input type="password" class="input" placeholder="Password" name="password" required />
+					<input type="password" class="input" placeholder="Konfirmasi Password" name="cpassword" required />
 				</div>
-			</div>
-			<div class="row justify-content-center">
-				<div class="col-md-7 col-lg-5">
-					<div class="wrap">
-						<div class="img" style="background-image: url(images/bg-1.jpg);"></div>
-						<div class="login-wrap p-4 p-md-5">
-							<div class="d-flex">
-								<div class="w-100">
-									<h3 class="mb-4">Sign In</h3>
-								</div>
-								<div class="w-100">
-									<p class="social-media d-flex justify-content-end">
-										<a href="#" class="social-icon d-flex align-items-center justify-content-center"><span class="fa fa-facebook"></span></a>
-										<a href="#" class="social-icon d-flex align-items-center justify-content-center"><span class="fa fa-twitter"></span></a>
-									</p>
-								</div>
-							</div>
-							<form action="php/login.php" class="signin-form" method="POST">
-								<div class="form-group mt-3">
-									<input type="text" class="form-control" name="username" required>
-									<label class="form-control-placeholder" for="username">Username</label>
-								</div>
-								<div class="form-group">
-									<input id="password-field" type="password" class="form-control" name="password" required>
-									<label class="form-control-placeholder" for="password">Password</label>
-									<span toggle="#password-field" class="fa fa-fw fa-eye field-icon toggle-password"></span>
-								</div>
-								<div class="form-group">
-									<button type="submit" class="form-control btn btn-primary rounded submit px-3">Sign In</button>
-								</div>
-								<div class="form-group d-md-flex">
-									<div class="w-50 text-left">
-										<label class="checkbox-wrap checkbox-primary mb-0">Remember Me
-											<input type="checkbox" checked>
-											<span class="checkmark"></span>
-										</label>
-									</div>
-									<div class="w-50 text-md-right">
-										<a href="#">Forgot Password</a>
-									</div>
-								</div>
-							</form>
-							<p class="text-center">Not a member? <a data-toggle="tab" href="#signup">Sign Up</a></p>
-						</div>
+				<button type="submit" name="daftar" class="submit-btn">Sign up</button>
+			</form>
+		</div>
+		<div class="login slide-up">
+			<div class="center">
+				<h2 class="form-title" id="login"><span>or</span>Log in</h2>
+				<form action="" method="POST">
+					<div class="form-holder">
+						<input type="text" class="input" placeholder="Username" name="username" required>
+						<input type="password" class="input" placeholder="Password" name="password" required>
 					</div>
-				</div>
+					<button type="submit" name="masuk" class="submit-btn">Log in</button>
+				</form>
 			</div>
 		</div>
-	</section>
-
-	<script src="js/jquery.min.js"></script>
-	<script src="js/popper.js"></script>
-	<script src="js/bootstrap.min.js"></script>
-	<script src="js/main.js"></script>
-
+	</div>
 </body>
+<script src="login/js/main.js"></script>
 
 </html>
